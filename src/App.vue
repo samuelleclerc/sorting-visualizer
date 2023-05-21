@@ -1,5 +1,5 @@
 <template>
-  <div class="body">
+  <div class="view">
     <h1>Sorting Visualizer</h1>
     <div id="container">
       <div
@@ -8,24 +8,40 @@
         :style="{
           height: item + '%',
         }"
-        :class="{ highlighted: isIncluded(index), bar: true }"
-      ></div>
+        :class="{
+          comparing: isComparing(index),
+          swapping: isSwapping(index),
+          sorted: isSorted(index),
+          bar: true,
+        }"
+      >
+        {{ showNumbers ? item : "" }}
+      </div>
     </div>
 
-    <div>
+    <div class="buttonGroup">
       <button @click="init">Init</button>
       <button @click="play">Play</button>
+      <button @click="showNumbers = !showNumbers">
+        Show Numbers: {{ showNumbers ? "On" : "Off" }}
+      </button>
     </div>
   </div>
 </template>
 
 <script>
+import { swap, bubbleSort } from "./utils";
+
 export default {
   data() {
     return {
       items: [],
       moves: [],
-      indices: [],
+      swapIndices: new Set(),
+      compareIndices: new Set(),
+      sortedIndices: new Set(),
+      animationDelayMs: 50,
+      showNumbers: false,
     };
   },
 
@@ -33,56 +49,80 @@ export default {
     this.init();
   },
 
-  computed: {
-    isIncluded() {
-      return (index) => this.indices.includes(index);
-    },
-  },
-
   methods: {
     init() {
+      this.items = [];
+      this.moves = [];
+
+      this.compareIndices.clear();
+      this.swapIndices.clear();
+      this.sortedIndices.clear();
+
       for (let i = 0; i < 20; i++) {
         this.items[i] = Math.floor(Math.random() * 91) + 5;
       }
     },
 
     play() {
-      this.bubbleSort([...this.items]);
+      if (this.moves.length) {
+        return;
+      }
+
+      this.moves = bubbleSort([...this.items]);
       this.animate();
     },
 
     animate() {
+      this.swapIndices.clear();
+      this.compareIndices.clear();
+
       if (!this.moves.length) {
-        this.indices = [];
         return;
       }
 
-      const [i, j] = this.moves.shift();
-      this.indices = [i, j];
-      [this.items[i], this.items[j]] = [this.items[j], this.items[i]];
-      setTimeout(this.animate, 100);
-    },
+      const { indices, type } = this.moves.shift();
+      const [i, j] = indices;
 
-    bubbleSort(array) {
-      this.moves = [];
-
-      for (let i = 0; i < array.length; i++) {
-        for (let j = 0; j < array.length - i - 1; j++) {
-          if (array[j] > array[j + 1]) {
-            this.moves.push([j, j + 1]);
-            [array[j], array[j + 1]] = [array[j + 1], array[j]];
-          }
-        }
+      switch (type) {
+        case "compare":
+          this.compareIndices.add(i);
+          this.compareIndices.add(j);
+          break;
+        case "swap":
+          this.swapIndices.add(i);
+          this.swapIndices.add(j);
+          swap(i, j, this.items);
+          break;
+        case "sorted":
+          this.sortedIndices.add(i);
+          this.sortedIndices.add(j);
+          break;
       }
 
-      return this.moves;
+      setTimeout(this.animate, this.animationDelayMs);
+    },
+
+    isComparing(index) {
+      return this.compareIndices.has(index);
+    },
+    isSwapping(index) {
+      return this.swapIndices.has(index);
+    },
+    isSorted(index) {
+      return this.sortedIndices.has(index);
     },
   },
 };
 </script>
 
 <style>
-.body {
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+.view {
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -95,19 +135,55 @@ export default {
   flex-direction: row;
   align-items: flex-end;
   justify-content: center;
-  height: 80vh;
+  height: 80dvh;
   width: 80vw;
+  min-width: 600px;
   border: 1px solid black;
 }
 
 .bar {
   width: 5%;
   margin: 1px;
+  padding: 5px;
   background-color: #f5f5f5;
   border: 1px solid black;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
 }
 
-.highlighted {
-  background-color: #ff0000;
+.comparing {
+  background-color: #3498db;
+}
+
+.swapping {
+  background-color: #e74c3c;
+}
+
+.sorted {
+  background-color: #2ecc71;
+}
+
+.buttonGroup {
+  display: flex;
+  flex-direction: row;
+  justify-content: space-around;
+  width: 80vw;
+  margin: 20px;
+}
+
+button {
+  cursor: pointer;
+  padding: 12px;
+  min-width: 100px;
+  border: 0px;
+  border-radius: 8px;
+
+  background: #3498db;
+  color: #ffffff;
+}
+button:hover {
+  background: #2980b9;
+  color: #ffffff;
 }
 </style>
