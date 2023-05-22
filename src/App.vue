@@ -1,7 +1,7 @@
 <template>
-  <div class="view">
-    <h1>Sorting Visualizer</h1>
-    <div id="container">
+  <NavBar :reset="init" :play="play" :toggleNumbers="toggleNumbers" />
+  <div class="container">
+    <div class="bars">
       <div
         v-for="(item, index) in items"
         :key="index"
@@ -18,21 +18,18 @@
         {{ showNumbers ? item : "" }}
       </div>
     </div>
-
-    <div class="buttonGroup">
-      <button @click="init">Init</button>
-      <button @click="play">Play</button>
-      <button @click="showNumbers = !showNumbers">
-        Show Numbers: {{ showNumbers ? "On" : "Off" }}
-      </button>
-    </div>
   </div>
 </template>
 
 <script>
-import { swap, bubbleSort } from "./utils";
+import { swap, bubbleSort, selectionSort, insertionSort } from "./utils";
+import NavBar from "./components/NavBar.vue";
 
 export default {
+  components: {
+    NavBar,
+  },
+
   data() {
     return {
       items: [],
@@ -42,6 +39,7 @@ export default {
       sortedIndices: new Set(),
       animationDelayMs: 50,
       showNumbers: false,
+      timeout: null,
     };
   },
 
@@ -63,12 +61,25 @@ export default {
       }
     },
 
-    play() {
+    play(sortingAlgorithm) {
       if (this.moves.length) {
-        return;
+        this.moves = [];
+        clearTimeout(this.timeout);
       }
 
-      this.moves = bubbleSort([...this.items]);
+      this.init();
+
+      switch (sortingAlgorithm) {
+        case "bubble":
+          this.moves = bubbleSort([...this.items]);
+          break;
+        case "selection":
+          this.moves = selectionSort([...this.items]);
+          break;
+        case "insertion":
+          this.moves = insertionSort([...this.items]);
+          break;
+      }
       this.animate();
     },
 
@@ -99,7 +110,11 @@ export default {
           break;
       }
 
-      setTimeout(this.animate, this.animationDelayMs);
+      this.timeout = setTimeout(this.animate, this.animationDelayMs);
+    },
+
+    toggleNumbers() {
+      this.showNumbers = !this.showNumbers;
     },
 
     isComparing(index) {
@@ -116,74 +131,41 @@ export default {
 </script>
 
 <style>
-* {
-  box-sizing: border-box;
-  margin: 0;
-  padding: 0;
-}
-
-.view {
+.container {
+  flex-grow: 0.95;
+  min-width: 100%;
   display: flex;
-  flex-direction: column;
-  align-items: center;
   justify-content: center;
-  height: 100vh;
 }
 
-#container {
+.bars {
+  width: 80%;
   display: flex;
-  flex-direction: row;
   align-items: flex-end;
-  justify-content: center;
-  height: 80dvh;
-  width: 80vw;
-  min-width: 600px;
-  border: 1px solid black;
 }
 
 .bar {
   width: 5%;
   margin: 1px;
   padding: 5px;
-  background-color: #f5f5f5;
-  border: 1px solid black;
+  background-color: #ffffffde;
   display: flex;
   align-items: flex-end;
   justify-content: center;
+  min-width: fit-content;
+  color: #1a1a1a;
+  border-radius: 4px;
 }
 
 .comparing {
-  background-color: #3498db;
+  background-color: #3498db !important;
 }
 
 .swapping {
-  background-color: #e74c3c;
+  background-color: #e74c3c !important;
 }
 
 .sorted {
   background-color: #2ecc71;
-}
-
-.buttonGroup {
-  display: flex;
-  flex-direction: row;
-  justify-content: space-around;
-  width: 80vw;
-  margin: 20px;
-}
-
-button {
-  cursor: pointer;
-  padding: 12px;
-  min-width: 100px;
-  border: 0px;
-  border-radius: 8px;
-
-  background: #3498db;
-  color: #ffffff;
-}
-button:hover {
-  background: #2980b9;
-  color: #ffffff;
 }
 </style>
